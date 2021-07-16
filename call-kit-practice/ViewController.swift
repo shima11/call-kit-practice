@@ -34,8 +34,9 @@ final class ViewController: UIViewController {
 
     title = "CallKit Practice"
     navigationItem.largeTitleDisplayMode = .always
+    navigationController?.navigationBar.prefersLargeTitles = true
 
-//    provider.setDelegate(self, queue: DispatchQueue.main)
+    provider.setDelegate(self, queue: DispatchQueue.main)
 
     view.backgroundColor = .white
 
@@ -81,11 +82,11 @@ final class ViewController: UIViewController {
   }
 
   @objc func newIncomingCall() {
-    print("new incomingCall call")
+    print("new incoming call")
 
     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
 
-      self.statusLabel.text = "new incomingCall call"
+      self.statusLabel.text = "new incoming call"
 
       let callHandler = CXHandle(type: .generic, value: Self.nickname)
       let callUpdate = CXCallUpdate()
@@ -94,7 +95,7 @@ final class ViewController: UIViewController {
       callUpdate.supportsDTMF = false
       callUpdate.supportsUngrouping = false
       callUpdate.supportsGrouping = false
-      callUpdate.hasVideo = false
+      callUpdate.hasVideo = true
 
       self.provider.reportNewIncomingCall(with: self.callingUUID, update: callUpdate) { error in
         print("report new incoming call error", error)
@@ -129,7 +130,6 @@ final class ViewController: UIViewController {
       update.supportsUngrouping = false
       update.hasVideo = true
       self.provider.reportCall(with: self.callingUUID, updated: update)
-
     }
   }
 
@@ -138,58 +138,58 @@ final class ViewController: UIViewController {
 
     statusLabel.text = "end call"
 
-    provider.reportCall(with: callingUUID, endedAt: .init(), reason: .remoteEnded)
+    provider.reportCall(with: callingUUID, endedAt: .init(), reason: .failed)
   }
 
 }
 
-//extension ViewController: CXProviderDelegate {
+extension ViewController: CXProviderDelegate {
+
+  public func providerDidReset(_: CXProvider) {
+    // Must clean up
+  }
+
+  public func provider(_ provider: CXProvider, perform action: CXStartCallAction) {
+
+    print("provider start")
+
+    provider.reportOutgoingCall(with: callingUUID, startedConnectingAt: .init())
+
+//    let result = delegate.handleStartCall()
+
+//    switch result {
+//    case .success:
+
+      action.fulfill(withDateStarted: .init())
+      provider.reportOutgoingCall(with: callingUUID, connectedAt: .init())
+//    case .failure:
 //
-//  public func providerDidReset(_: CXProvider) {
-//    // Must clean up
-//  }
+//      action.fail()
+//      provider.reportCall(with: callingUUID, endedAt: .init(), reason: .failed)
+//    }
+
+  }
+
+  public func provider(_: CXProvider, perform action: CXEndCallAction) {
+
+    print("provider end")
+
+//    let result = delegate.handleEndCall()
 //
-//  public func provider(_ provider: CXProvider, perform action: CXStartCallAction) {
+//    switch result {
+//    case .success:
+
+      action.fulfill(withDateEnded: .init())
+//    case .failure:
 //
-//    print("provider start")
-//
-//    provider.reportOutgoingCall(with: callingUUID, startedConnectingAt: .init())
-//
-////    let result = delegate.handleStartCall()
-//
-////    switch result {
-////    case .success:
-//
-//      action.fulfill(withDateStarted: .init())
-//      provider.reportOutgoingCall(with: callingUUID, connectedAt: .init())
-////    case .failure:
-////
-////      action.fail()
-////      provider.reportCall(with: callingUUID, endedAt: .init(), reason: .failed)
-////    }
-//
-//  }
-//
-//  public func provider(_: CXProvider, perform action: CXEndCallAction) {
-//
-//    print("provider end")
-//
-////    let result = delegate.handleEndCall()
-////
-////    switch result {
-////    case .success:
-//
-//      action.fulfill(withDateEnded: .init())
-////    case .failure:
-////
-////      action.fail()
-////    }
-//  }
-//
-//  public func provider(_: CXProvider, perform action: CXSetMutedCallAction) {
-//
-//    //    delegate.handleMute(muted: action.isMuted)
-//    action.fulfill()
-//  }
-//}
-//
+//      action.fail()
+//    }
+  }
+
+  public func provider(_: CXProvider, perform action: CXSetMutedCallAction) {
+
+    //    delegate.handleMute(muted: action.isMuted)
+    action.fulfill()
+  }
+}
+
