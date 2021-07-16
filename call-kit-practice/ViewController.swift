@@ -52,7 +52,12 @@ final class ViewController: UIViewController {
     let newIncomingCallButton = UIButton(type: .custom)
     newIncomingCallButton.setTitle("incoming", for: .normal)
     newIncomingCallButton.setTitleColor(.systemBlue, for: .normal)
-    newIncomingCallButton.addTarget(self, action: #selector(newIncomingCall), for: .touchUpInside)
+    newIncomingCallButton.addTarget(self, action: #selector(incomingCall), for: .touchUpInside)
+
+    let newOutgoingCallButton = UIButton(type: .custom)
+    newOutgoingCallButton.setTitle("outgoing", for: .normal)
+    newOutgoingCallButton.setTitleColor(.systemBlue, for: .normal)
+    newOutgoingCallButton.addTarget(self, action: #selector(outgoingCall), for: .touchUpInside)
 
     let startCallButton = UIButton(type: .custom)
     startCallButton.setTitle("start", for: .normal)
@@ -68,6 +73,7 @@ final class ViewController: UIViewController {
       endCallButton,
       startCallButton,
       newIncomingCallButton,
+      newOutgoingCallButton,
     ])
     stackView.spacing = 16
 
@@ -81,8 +87,10 @@ final class ViewController: UIViewController {
 
   }
 
-  @objc func newIncomingCall() {
+  @objc func incomingCall() {
     print("new incoming call")
+
+    let bgTaskID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
 
     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
 
@@ -100,8 +108,40 @@ final class ViewController: UIViewController {
       self.provider.reportNewIncomingCall(with: self.callingUUID, update: callUpdate) { error in
         print("report new incoming call error", error)
       }
+      UIApplication.shared.endBackgroundTask(bgTaskID)
 
     }
+  }
+
+  @objc func outgoingCall() {
+    print("new outgoing call")
+
+    statusLabel.text = "new outgoing call"
+
+    let fromHandle = CXHandle(type: .generic, value: Self.nickname)
+    let startCallAction = CXStartCallAction(call: UUID(), handle: fromHandle)
+//    startCallAction.isVideo = true
+    let startCallTransaction = CXTransaction(action: startCallAction)
+
+    callController.request(startCallTransaction) { [weak self] (error) in
+
+      if let error = error {
+        print("report new outgoing call error", error)
+      }
+
+      guard let self = self else { return }
+
+      self.provider.reportOutgoingCall(with: startCallAction.callUUID, startedConnectingAt: nil)
+
+      let bgTaskID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
+
+      DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+        self.provider.reportOutgoingCall(with: startCallAction.callUUID, connectedAt: nil)
+        UIApplication.shared.endBackgroundTask(bgTaskID)
+      }
+
+    }
+
   }
 
   @objc func startCall() {
@@ -112,6 +152,8 @@ final class ViewController: UIViewController {
     let handle = CXHandle(type: .generic, value: Self.nickname)
     let startCallAction = CXStartCallAction(call: callingUUID, handle: handle)
     let transaction = CXTransaction(action: startCallAction)
+
+    let bgTaskID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
 
     callController.request(transaction) { [weak self] error in
 
@@ -130,6 +172,7 @@ final class ViewController: UIViewController {
       update.supportsUngrouping = false
       update.hasVideo = true
       self.provider.reportCall(with: self.callingUUID, updated: update)
+      UIApplication.shared.endBackgroundTask(bgTaskID)
     }
   }
 
@@ -184,6 +227,7 @@ extension ViewController: CXProviderDelegate {
 //
 //      action.fail()
 //    }
+
   }
 
   public func provider(_: CXProvider, perform action: CXSetMutedCallAction) {
