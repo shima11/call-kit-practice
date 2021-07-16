@@ -11,13 +11,14 @@ import CallKit
 
 final class ViewController: UIViewController {
 
-  let statusLabel = UILabel()
+  private let statusLabel = UILabel()
 
   private let callingUUID = UUID()
+  private static let nickname = "Charlotte"
 
   private let callController = CXCallController(queue: .main)
   private let provider: CXProvider = .init(configuration: { () -> CXProviderConfiguration in
-    let providerConfiguration = CXProviderConfiguration(localizedName: "ふうたろう")
+    let providerConfiguration = CXProviderConfiguration(localizedName: nickname)
     providerConfiguration.supportsVideo = true
     providerConfiguration.maximumCallGroups = 1
     providerConfiguration.maximumCallsPerCallGroup = 1
@@ -30,6 +31,9 @@ final class ViewController: UIViewController {
   override func viewDidLoad() {
 
     super.viewDidLoad()
+
+    title = "CallKit Practice"
+    navigationItem.largeTitleDisplayMode = .always
 
 //    provider.setDelegate(self, queue: DispatchQueue.main)
 
@@ -45,22 +49,19 @@ final class ViewController: UIViewController {
     statusLabel.textColor = .darkText
 
     let newIncomingCallButton = UIButton(type: .custom)
-    newIncomingCallButton.setTitle("new incoming", for: .normal)
+    newIncomingCallButton.setTitle("incoming", for: .normal)
     newIncomingCallButton.setTitleColor(.systemBlue, for: .normal)
     newIncomingCallButton.addTarget(self, action: #selector(newIncomingCall), for: .touchUpInside)
-//    newIncomingCallButton.easy.layout(Size(.init(width: 40, height: 40)))
 
     let startCallButton = UIButton(type: .custom)
     startCallButton.setTitle("start", for: .normal)
     startCallButton.setTitleColor(.systemBlue, for: .normal)
     startCallButton.addTarget(self, action: #selector(startCall), for: .touchUpInside)
-//    startCallButton.easy.layout(Size(.init(width: 40, height: 40)))
 
     let endCallButton = UIButton(type: .custom)
     endCallButton.setTitle("end", for: .normal)
     endCallButton.setTitleColor(.systemRed, for: .normal)
     endCallButton.addTarget(self, action: #selector(endCall), for: .touchUpInside)
-//    endCallButton.easy.layout(Size(.init(width: 40, height: 40)))
 
     let stackView = UIStackView(arrangedSubviews: [
       endCallButton,
@@ -86,7 +87,7 @@ final class ViewController: UIViewController {
 
       self.statusLabel.text = "new incomingCall call"
 
-      let callHandler = CXHandle(type: .generic, value: "XXX")
+      let callHandler = CXHandle(type: .generic, value: Self.nickname)
       let callUpdate = CXCallUpdate()
       callUpdate.remoteHandle = callHandler
       callUpdate.supportsHolding = true
@@ -107,7 +108,7 @@ final class ViewController: UIViewController {
 
     statusLabel.text = "start call"
 
-    let handle = CXHandle(type: .generic, value: "ふうたろう")
+    let handle = CXHandle(type: .generic, value: Self.nickname)
     let startCallAction = CXStartCallAction(call: callingUUID, handle: handle)
     let transaction = CXTransaction(action: startCallAction)
 
@@ -121,15 +122,14 @@ final class ViewController: UIViewController {
         return
       }
 
-      disableKeyPad: do {
-        let update = CXCallUpdate()
-        update.supportsDTMF = false
-        update.supportsHolding = false
-        update.supportsGrouping = false
-        update.supportsUngrouping = false
-        update.hasVideo = true
-        self.provider.reportCall(with: self.callingUUID, updated: update)
-      }
+      let update = CXCallUpdate()
+      update.supportsDTMF = false
+      update.supportsHolding = false
+      update.supportsGrouping = false
+      update.supportsUngrouping = false
+      update.hasVideo = true
+      self.provider.reportCall(with: self.callingUUID, updated: update)
+
     }
   }
 
