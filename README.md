@@ -2,4 +2,4 @@
 
 | アプリ画面 | 着信 | 通話中に着信 |
 | ---- | ---- | ---- |
-|![""](./Resources/sample1.png)|![""](./Resources/sample2.png)|![""](./Resources/sample3.png)|
+|![""](./Resources/sample1.PNG)|![""](./Resources/sample2.PNG)|![""](./Resources/sample3.PNG)|
