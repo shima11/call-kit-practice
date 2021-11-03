@@ -52,22 +52,120 @@ final class ViewController: UIViewController {
     let newIncomingCallButton = UIButton(type: .custom)
     newIncomingCallButton.setTitle("incoming", for: .normal)
     newIncomingCallButton.setTitleColor(.systemBlue, for: .normal)
-    newIncomingCallButton.addTarget(self, action: #selector(incomingCall), for: .touchUpInside)
+    newIncomingCallButton.addAction(.init(handler: { [weak self] action in
+      guard let self = self else { return }
+
+      print("new incoming call")
+
+      let bgTaskID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
+
+      DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+
+        self.statusLabel.text = "new incoming call"
+
+        let callHandler = CXHandle(type: .generic, value: Self.nickname)
+        let callUpdate = CXCallUpdate()
+        callUpdate.remoteHandle = callHandler
+        callUpdate.supportsHolding = true
+        callUpdate.supportsDTMF = false
+        callUpdate.supportsUngrouping = false
+        callUpdate.supportsGrouping = false
+        callUpdate.hasVideo = true
+
+        self.provider.reportNewIncomingCall(with: self.callingUUID, update: callUpdate) { error in
+          print("report new incoming call error", error)
+        }
+        UIApplication.shared.endBackgroundTask(bgTaskID)
+
+      }
+    }), for: .touchUpInside)
 
     let newOutgoingCallButton = UIButton(type: .custom)
     newOutgoingCallButton.setTitle("outgoing", for: .normal)
     newOutgoingCallButton.setTitleColor(.systemBlue, for: .normal)
-    newOutgoingCallButton.addTarget(self, action: #selector(outgoingCall), for: .touchUpInside)
+    newOutgoingCallButton.addAction(.init(handler: { [weak self] action in
+
+      guard let self = self else { return }
+
+      print("new outgoing call")
+
+      self.statusLabel.text = "new outgoing call"
+
+      let fromHandle = CXHandle(type: .generic, value: Self.nickname)
+      let startCallAction = CXStartCallAction(call: UUID(), handle: fromHandle)
+  //    startCallAction.isVideo = true
+      let startCallTransaction = CXTransaction(action: startCallAction)
+
+      self.callController.request(startCallTransaction) { [weak self] (error) in
+
+        if let error = error {
+          print("report new outgoing call error", error)
+        }
+
+        guard let self = self else { return }
+
+        self.provider.reportOutgoingCall(with: startCallAction.callUUID, startedConnectingAt: nil)
+
+        let bgTaskID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+          self.provider.reportOutgoingCall(with: startCallAction.callUUID, connectedAt: nil)
+          UIApplication.shared.endBackgroundTask(bgTaskID)
+        }
+
+      }
+
+    }), for: .touchUpInside)
 
     let startCallButton = UIButton(type: .custom)
     startCallButton.setTitle("start", for: .normal)
     startCallButton.setTitleColor(.systemBlue, for: .normal)
-    startCallButton.addTarget(self, action: #selector(startCall), for: .touchUpInside)
+    startCallButton.addAction(.init(handler: { [weak self] action in
+      guard let self = self else { return }
+      print("start call")
+
+      self.statusLabel.text = "start call"
+
+      let handle = CXHandle(type: .generic, value: Self.nickname)
+      let startCallAction = CXStartCallAction(call: self.callingUUID, handle: handle)
+      let transaction = CXTransaction(action: startCallAction)
+
+      let bgTaskID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
+
+      self.callController.request(transaction) { [weak self] error in
+
+        if let error = error {
+          print("start call request error", error)
+        }
+
+        guard let self = self else {
+          return
+        }
+
+        let update = CXCallUpdate()
+        update.supportsDTMF = false
+        update.supportsHolding = false
+        update.supportsGrouping = false
+        update.supportsUngrouping = false
+        update.hasVideo = true
+        self.provider.reportCall(with: self.callingUUID, updated: update)
+        UIApplication.shared.endBackgroundTask(bgTaskID)
+      }
+    }), for: .touchUpInside)
 
     let endCallButton = UIButton(type: .custom)
     endCallButton.setTitle("end", for: .normal)
     endCallButton.setTitleColor(.systemRed, for: .normal)
-    endCallButton.addTarget(self, action: #selector(endCall), for: .touchUpInside)
+    endCallButton.addAction(.init(handler: { [weak self] action in
+
+      guard let self = self else { return }
+
+      print("end call")
+
+      self.statusLabel.text = "end call"
+
+      self.provider.reportCall(with: self.callingUUID, endedAt: .init(), reason: .failed)
+    }), for: .touchUpInside)
 
     let stackView = UIStackView(arrangedSubviews: [
       endCallButton,
@@ -88,100 +186,100 @@ final class ViewController: UIViewController {
   }
 
   @objc func incomingCall() {
-    print("new incoming call")
-
-    let bgTaskID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
-
-    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-
-      self.statusLabel.text = "new incoming call"
-
-      let callHandler = CXHandle(type: .generic, value: Self.nickname)
-      let callUpdate = CXCallUpdate()
-      callUpdate.remoteHandle = callHandler
-      callUpdate.supportsHolding = true
-      callUpdate.supportsDTMF = false
-      callUpdate.supportsUngrouping = false
-      callUpdate.supportsGrouping = false
-      callUpdate.hasVideo = true
-
-      self.provider.reportNewIncomingCall(with: self.callingUUID, update: callUpdate) { error in
-        print("report new incoming call error", error)
-      }
-      UIApplication.shared.endBackgroundTask(bgTaskID)
-
-    }
+//    print("new incoming call")
+//
+//    let bgTaskID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
+//
+//    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+//
+//      self.statusLabel.text = "new incoming call"
+//
+//      let callHandler = CXHandle(type: .generic, value: Self.nickname)
+//      let callUpdate = CXCallUpdate()
+//      callUpdate.remoteHandle = callHandler
+//      callUpdate.supportsHolding = true
+//      callUpdate.supportsDTMF = false
+//      callUpdate.supportsUngrouping = false
+//      callUpdate.supportsGrouping = false
+//      callUpdate.hasVideo = true
+//
+//      self.provider.reportNewIncomingCall(with: self.callingUUID, update: callUpdate) { error in
+//        print("report new incoming call error", error)
+//      }
+//      UIApplication.shared.endBackgroundTask(bgTaskID)
+//
+//    }
   }
 
   @objc func outgoingCall() {
-    print("new outgoing call")
-
-    statusLabel.text = "new outgoing call"
-
-    let fromHandle = CXHandle(type: .generic, value: Self.nickname)
-    let startCallAction = CXStartCallAction(call: UUID(), handle: fromHandle)
-//    startCallAction.isVideo = true
-    let startCallTransaction = CXTransaction(action: startCallAction)
-
-    callController.request(startCallTransaction) { [weak self] (error) in
-
-      if let error = error {
-        print("report new outgoing call error", error)
-      }
-
-      guard let self = self else { return }
-
-      self.provider.reportOutgoingCall(with: startCallAction.callUUID, startedConnectingAt: nil)
-
-      let bgTaskID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
-
-      DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-        self.provider.reportOutgoingCall(with: startCallAction.callUUID, connectedAt: nil)
-        UIApplication.shared.endBackgroundTask(bgTaskID)
-      }
-
-    }
+//    print("new outgoing call")
+//
+//    statusLabel.text = "new outgoing call"
+//
+//    let fromHandle = CXHandle(type: .generic, value: Self.nickname)
+//    let startCallAction = CXStartCallAction(call: UUID(), handle: fromHandle)
+////    startCallAction.isVideo = true
+//    let startCallTransaction = CXTransaction(action: startCallAction)
+//
+//    callController.request(startCallTransaction) { [weak self] (error) in
+//
+//      if let error = error {
+//        print("report new outgoing call error", error)
+//      }
+//
+//      guard let self = self else { return }
+//
+//      self.provider.reportOutgoingCall(with: startCallAction.callUUID, startedConnectingAt: nil)
+//
+//      let bgTaskID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
+//
+//      DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+//        self.provider.reportOutgoingCall(with: startCallAction.callUUID, connectedAt: nil)
+//        UIApplication.shared.endBackgroundTask(bgTaskID)
+//      }
+//
+//    }
 
   }
 
   @objc func startCall() {
-    print("start call")
-
-    statusLabel.text = "start call"
-
-    let handle = CXHandle(type: .generic, value: Self.nickname)
-    let startCallAction = CXStartCallAction(call: callingUUID, handle: handle)
-    let transaction = CXTransaction(action: startCallAction)
-
-    let bgTaskID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
-
-    callController.request(transaction) { [weak self] error in
-
-      if let error = error {
-        print("start call request error", error)
-      }
-
-      guard let self = self else {
-        return
-      }
-
-      let update = CXCallUpdate()
-      update.supportsDTMF = false
-      update.supportsHolding = false
-      update.supportsGrouping = false
-      update.supportsUngrouping = false
-      update.hasVideo = true
-      self.provider.reportCall(with: self.callingUUID, updated: update)
-      UIApplication.shared.endBackgroundTask(bgTaskID)
-    }
+//    print("start call")
+//
+//    statusLabel.text = "start call"
+//
+//    let handle = CXHandle(type: .generic, value: Self.nickname)
+//    let startCallAction = CXStartCallAction(call: callingUUID, handle: handle)
+//    let transaction = CXTransaction(action: startCallAction)
+//
+//    let bgTaskID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
+//
+//    callController.request(transaction) { [weak self] error in
+//
+//      if let error = error {
+//        print("start call request error", error)
+//      }
+//
+//      guard let self = self else {
+//        return
+//      }
+//
+//      let update = CXCallUpdate()
+//      update.supportsDTMF = false
+//      update.supportsHolding = false
+//      update.supportsGrouping = false
+//      update.supportsUngrouping = false
+//      update.hasVideo = true
+//      self.provider.reportCall(with: self.callingUUID, updated: update)
+//      UIApplication.shared.endBackgroundTask(bgTaskID)
+//    }
   }
 
   @objc func endCall() {
-    print("end call")
-
-    statusLabel.text = "end call"
-
-    provider.reportCall(with: callingUUID, endedAt: .init(), reason: .failed)
+//    print("end call")
+//
+//    statusLabel.text = "end call"
+//
+//    provider.reportCall(with: callingUUID, endedAt: .init(), reason: .failed)
   }
 
 }
