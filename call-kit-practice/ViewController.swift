@@ -28,6 +28,8 @@ final class ViewController: UIViewController {
     return providerConfiguration
   }())
 
+  private let callObserver = CXCallObserver()
+
   override func viewDidLoad() {
 
     super.viewDidLoad()
@@ -37,6 +39,8 @@ final class ViewController: UIViewController {
     navigationController?.navigationBar.prefersLargeTitles = true
 
     provider.setDelegate(self, queue: DispatchQueue.main)
+
+    callObserver.setDelegate(self, queue: DispatchQueue.main)
 
     view.backgroundColor = .white
 
@@ -335,3 +339,42 @@ extension ViewController: CXProviderDelegate {
   }
 }
 
+extension ViewController: CXCallObserverDelegate {
+
+  func callObserver(_ callObserver: CXCallObserver, callChanged call: CXCall) {
+    callStateValue(call: call)
+  }
+
+  private func callStateValue(call: CXCall)  {
+
+    print("isOutgoing   ", call.isOutgoing);
+    print("hasConnected ", call.hasConnected);
+    print("hasEnded     ", call.hasEnded);
+    print("isOnHold     ", call.isOnHold);
+
+    // 発信
+    if (call.isOutgoing == true && call.hasConnected == false) {
+      print("発信　CXCallState : Dialing");
+    }
+
+    // 着信
+    if (call.hasConnected == false && call.hasEnded == false) {
+      print("着信　CXCallState : Incoming");
+    }
+
+    // 着信切断
+    if (call.hasConnected == false && call.hasEnded == true) {
+      print("着信拒否　CXCallState : Incoming");
+    }
+
+    // 受話
+    if (call.hasConnected == true && call.hasEnded == false) {
+      print("受話　CXCallState : Connected");
+    }
+
+    // 切断
+    if (call.hasConnected == true && call.hasEnded == true) {
+      print("切断　CXCallState : Disconnected");
+    }
+  }
+}
